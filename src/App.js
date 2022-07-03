@@ -81,7 +81,7 @@ function App() {
         data: saida,
         backgroundColor: 'rgba(97,218,251,0.1)',
         borderColor: "#61dafb",
-        label: "Sinal de Saída Tradato"
+        label: "Sinal de Saída Tratado"
       }],
     })
   }
@@ -97,7 +97,7 @@ function App() {
   function FFT(sinal) {
     let N = sinal?.length
     if (N === 1) return sinal
-    if (N % 2 > 0) throw new Error("tamanho da entrada tem que ser uma potencia de 2")
+    if (N % 2 > 0) throw new Error("Tamanho da entrada precisa ser uma potencia de 2")
     let parInput = []
     let imparInput = []
     for (let i = 0; i < N; i = i + 2)  parInput.push(sinal[i])
@@ -156,8 +156,8 @@ function App() {
         </div>
         <div>
           {!botao ?
-            <div style={{ justifyContent: 'center', alignContent: 'center', flexDirection: 'column' }}>
-              <span style={{ width: '50%' }}>
+            <div style={{ justifyContent: 'center', alignContent: 'center', flexDirection: 'column', textAlign:'center',alignItems:'center' }}>
+              <span style={{ width: '50%'}}>
                 Insira um documento de texto com os valores numéricos separados por uma quebra de linha, ou seja, cada sinal em uma linha como no modelo apresentado a seguir. Nota-se que o total de sinais precisa ser potência de 2.
               </span>
               <div style={{ justifyContent: 'space-around', marginTop: '35px' }}>
@@ -167,7 +167,8 @@ function App() {
                     cursor: 'pointer',
                     border: '1px solid gray',
                     padding: '5px',
-                    borderRadius: '10px'
+                    borderRadius: '10px',
+                    margin:'35px'
                   }}
                 >
                   Clique para o upload
@@ -177,7 +178,8 @@ function App() {
                     cursor: 'pointer',
                     border: '1px solid gray',
                     padding: '5px',
-                    borderRadius: '10px'
+                    borderRadius: '10px',
+                    margin:'35px'
                   }}
                   onClick={() => { window.open(Exemplo) }}
                 >
@@ -190,9 +192,12 @@ function App() {
                 <input onChange={(event) => setFreqAqui(event.target.value)} style={{ width: '30%' }} type="number" />
               </div>
               {saidaChart && freqAqui ?
-                <div style={{ width: '700px', marginTop: '25px' }}>
+                <div style={{ width: '80%', marginTop: '25px' }}>
+                  <h3>Sinal de Entrada</h3>
                   <LineChart chartData={sinalChart} />
+                  <h3>Sinal de Saída</h3>
                   <LineChart chartData={saidaChart} />
+                  <h3>Espectro de Frequências</h3>
                   <LineChart chartData={saidaTratadoChart} />
                 </div>
                 : null}
