@@ -300,11 +300,11 @@ function App() {
                   <div style={{ alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ marginTop: '35px', flexDirection: 'column', alignItems: 'center' }}>
                       <label>Início</label>
-                      <input onChange={event => setInicio(event.target.value)} value={inicio} />
+                      <input onChange={event => setInicio(event.target.value)} value={inicio} type="number"/>
                     </div>
                     <div style={{ marginTop: '35px', flexDirection: 'column', alignItems: 'center' }}>
                       <label>Fim</label>
-                      <input onChange={event => setFim(event.target.value)} value={fim} />
+                      <input onChange={event => setFim(event.target.value)} value={fim} type="number"/>
                     </div>
                   </div>
                   <button onClick={() => setSinal(geraSinal())}>Calcular</button>
