@@ -12,7 +12,7 @@ function App() {
   const [saidaChart, setSaidaChart] = useState();
   const [saidaTratadoChart, setSaidaTratadoChart] = useState();
   const [freqAqui, setFreqAqui] = useState();
-  const [tipoFuncao, setTipoFuncao] = useState('1');
+  const [tipoFuncao, setTipoFuncao] = useState('0');
   const [inicio, setInicio] = useState();
   const [fim, setFim] = useState();
   const [serie, setSerie] = useState([]);
