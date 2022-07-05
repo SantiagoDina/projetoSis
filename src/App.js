@@ -5,13 +5,24 @@ import LineChart from "./Charts/LineChart";
 import Complex from "complex.js"
 
 function App() {
-  const [botao, setBotao] = useState(false);
+  const [botao, setBotao] = useState(true);
   const [sinal, setSinal] = useState();
   const [file, setFile] = useState();
   const [sinalChart, setSinalChart] = useState();
   const [saidaChart, setSaidaChart] = useState();
   const [saidaTratadoChart, setSaidaTratadoChart] = useState();
   const [freqAqui, setFreqAqui] = useState();
+  const [tipoFuncao, setTipoFuncao] = useState('1');
+  const [inicio, setInicio] = useState();
+  const [fim, setFim] = useState();
+  const [serie, setSerie] = useState([]);
+  const [numInd, setNumInd] = useState();
+  const [denInd, setDenInd] = useState();
+  const [numDep, setNumDep] = useState();
+  const [denDep, setDenDep] = useState();
+  const [atualizar, setAtualizar] = useState(0);
+  const [nyquist, setNyquist] = useState(0);
+
 
   function readFile(e) {
     e.preventDefault();
@@ -36,11 +47,16 @@ function App() {
     reader.readAsText(e.target.files[0]);
   }
 
-  function defineSinalChart() {
+  function defineSinalChart(sinal) {
     let tamanho = []
+    // if (!botao)
     for (let i = 0; i < sinal?.length; i++) {
-      tamanho.push((i / freqAqui).toFixed(3))
+      tamanho.push((i / freqAqui))
     }
+    // else
+    // for (let i = inicio; i < fim; i = i + 1 / nyquist) {
+    //   tamanho.push((i).toFixed(3))
+    // }
     setSinalChart({
       labels: tamanho,
       datasets: [{
@@ -71,9 +87,9 @@ function App() {
   function defineFTTTratadoChart(saida) {
     let tamanho = []
     let N = sinal?.length
-    let periodo = 1/freqAqui
+    let periodo = 1 / freqAqui
     for (let i = 0; i < 0.5; i = i + 1 / N) {
-      tamanho.push((i / periodo).toFixed(0))
+      tamanho.push((i / periodo))
     }
     setSaidaTratadoChart({
       labels: tamanho,
@@ -117,7 +133,8 @@ function App() {
   }
 
   useEffect(() => {
-    defineSinalChart()
+    // if (!botao) {
+    defineSinalChart(sinal)
     if (sinal?.length > 0)
       try {
         let saida = FFT(sinal)
@@ -131,8 +148,63 @@ function App() {
       } catch (err) {
         alert(err)
       }
+    // }
+
   }, [sinal, freqAqui]);
 
+  function geraSinal() {
+    let sinalCriado = []
+    let nPontos = 1
+    while ((parseFloat(fim) - parseFloat(inicio)) / nPontos > 1 / nyquist) nPontos = nPontos * 2
+    let passo = (parseFloat(fim) - parseFloat(inicio)) / nPontos
+    for (let i = parseFloat(inicio); i < parseFloat(fim); i = i + passo) {
+      sinalCriado.push(respostaSerie(i))
+    }
+    setFreqAqui(1 / passo)
+    console.log('sinalCriado :>> ', sinalCriado);
+    return sinalCriado
+  }
+
+  function inserirSerie() {
+    if (denInd != '0' && denDep != '0') {
+      let serieAtual = serie
+      let novoTermo = {
+        numInd: parseFloat(numInd) ? parseFloat(numInd) : 1,
+        denInd: parseFloat(denInd) ? parseFloat(denInd) : 1,
+        numDep: parseFloat(numDep) ? parseFloat(numDep) : 1,
+        denDep: parseFloat(denDep) ? parseFloat(denDep) : 1,
+        tipo: tipoFuncao
+      }
+      serieAtual.push(novoTermo)
+      let maiorFreq = 0
+      serieAtual.forEach(el => {
+        if (el.numDep / el.denDep > maiorFreq) maiorFreq = el.numDep / el.denDep
+      })
+      setNyquist(2 * maiorFreq / Math.PI)
+      setSerie(serieAtual)
+      setNumInd('')
+      setDenInd('')
+      setNumDep('')
+      setDenDep('')
+      setAtualizar(atualizar + 1)
+    }
+  }
+
+  function respostaSerie(t) {
+    let resp = 0
+    serie.forEach(el => {
+      if (el.tipo === '1') {
+        resp = resp + el.numInd / el.denInd
+      }
+      if (el.tipo === '2') {
+        resp = resp + el.numInd / el.denInd * Math.cos((el.numDep / el.denDep) * t)
+      }
+      if (el.tipo === '3') {
+        resp = resp + el.numInd / el.denInd * Math.sin((el.numDep / el.denDep) * t)
+      }
+    })
+    return resp
+  }
 
   return (
     <>
@@ -156,8 +228,8 @@ function App() {
         </div>
         <div>
           {!botao ?
-            <div style={{ justifyContent: 'center', alignContent: 'center', flexDirection: 'column', textAlign:'center',alignItems:'center' }}>
-              <span style={{ width: '50%'}}>
+            <div style={{ justifyContent: 'center', alignContent: 'center', flexDirection: 'column', textAlign: 'center', alignItems: 'center' }}>
+              <span style={{ width: '50%' }}>
                 Insira um documento de texto com os valores numéricos separados por uma quebra de linha, ou seja, cada sinal em uma linha como no modelo apresentado a seguir. Nota-se que o total de sinais precisa ser potência de 2.
               </span>
               <div style={{ justifyContent: 'space-around', marginTop: '35px' }}>
@@ -168,7 +240,7 @@ function App() {
                     border: '1px solid gray',
                     padding: '5px',
                     borderRadius: '10px',
-                    margin:'35px'
+                    margin: '35px'
                   }}
                 >
                   Clique para o upload
@@ -179,7 +251,7 @@ function App() {
                     border: '1px solid gray',
                     padding: '5px',
                     borderRadius: '10px',
-                    margin:'35px'
+                    margin: '35px'
                   }}
                   onClick={() => { window.open(Exemplo) }}
                 >
@@ -201,9 +273,124 @@ function App() {
                   <LineChart chartData={saidaTratadoChart} />
                 </div>
                 : null}
-            </div> :
-            <>
-            </>}
+            </div>
+            :
+            <div style={{ justifyContent: 'center', alignContent: 'center', flexDirection: 'column', textAlign: 'center', alignItems: 'center' }}>
+              {serie && serie.map(el => {
+                return (
+                  <div style={{ marginTop: '35px' }}>
+                    {el.tipo === '1' ?
+                      <>
+                        {el.numInd / el.denInd}
+                      </>
+                      : el.tipo === '2' ?
+                        <>
+                          {el.numInd / el.denInd} cos({(el.numDep / el.denDep).toFixed(3)} t)
+                        </> : el.tipo === '3' ?
+                          <>
+                            {el.numInd / el.denInd} sin({(el.numDep / el.denDep).toFixed(3)} t)
+                          </> : null}
+                    {" + "}
+                  </div>
+                )
+              })}
+              {serie.length ?
+                <div style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column', marginTop: '35px' }}>
+                  <label>Intervalo</label>
+                  <div style={{ alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ marginTop: '35px', flexDirection: 'column', alignItems: 'center' }}>
+                      <label>Início</label>
+                      <input onChange={event => setInicio(event.target.value)} value={inicio} />
+                    </div>
+                    <div style={{ marginTop: '35px', flexDirection: 'column', alignItems: 'center' }}>
+                      <label>Fim</label>
+                      <input onChange={event => setFim(event.target.value)} value={fim} />
+                    </div>
+                  </div>
+                  <button onClick={() => setSinal(geraSinal())}>Calcular</button>
+                </div>
+                : null}
+              <div style={{ marginTop: '35px', flexDirection: 'column', alignItems: 'center' }}>
+                <label>Inserir novo</label>
+                <label>obs: seno e cosseno em radianos</label>
+                <select onChange={(event) => setTipoFuncao(event.target.value)} value={tipoFuncao}>
+                  <option value=''></option>
+                  <option value='1'>Termo Independente</option>
+                  <option value='2'>Cosseno</option>
+                  <option value='3'>Seno</option>
+                </select>
+              </div>
+              <div>
+                {tipoFuncao === '1' ?
+                  <div style={{ alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column', marginTop: '35px' }}>
+                      <input style={{ width: '30%', marginBottom: '0px' }} type="number" onChange={event => setNumInd(event.target.value)} value={numInd} />
+                      <hr style={{ width: '30%' }} />
+                      <input style={{ width: '30%', marginTop: '0px' }} type="number" onChange={event => setDenInd(event.target.value)} value={denInd} />
+                    </div>
+                    <div style={{ flexDirection: 'column' }}>
+                      <button onClick={() => inserirSerie()}> Inserir </button>
+                      <button onClick={() => setSerie([])}> Limpar Serie </button>
+                    </div>
+                  </div>
+                  : tipoFuncao === '2' ?
+                    <div style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                      <div style={{ justifyContent: 'center', alignContent: 'center', justifyItems: 'center', alignItems: 'center' }}>
+                        <div style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column', marginTop: '35px' }}>
+                          <input style={{ width: '30%', marginBottom: '0px' }} type="number" onChange={event => setNumInd(event.target.value)} value={numInd} />
+                          <hr style={{ width: '30%' }} />
+                          <input style={{ width: '30%', marginTop: '0px' }} type="number" onChange={event => setDenInd(event.target.value)} value={denInd} />
+                        </div>
+                        <h2 style={{ margin: '-75px' }}>Cos ( </h2>
+                        <div style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column', marginTop: '35px', marginRight: '-75px' }}>
+                          <input style={{ width: '30%', marginBottom: '0px' }} type="number" onChange={event => setNumDep(event.target.value)} value={numDep} />
+                          <hr style={{ width: '30%' }} />
+                          <input style={{ width: '30%', marginTop: '0px' }} type="number" onChange={event => setDenDep(event.target.value)} value={denDep} />
+                        </div>
+                        <h2 >t )</h2>
+                      </div>
+                      <div>
+                        <button onClick={() => inserirSerie()}> Inserir </button>
+                        <button onClick={() => setSerie([])}> Limpar Serie </button>
+                      </div>
+                    </div>
+                    : tipoFuncao === '3' ?
+                      <div style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                        <div style={{ justifyContent: 'center', alignContent: 'center', justifyItems: 'center', alignItems: 'center' }}>
+                          <div style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column', marginTop: '35px' }}>
+                            <input style={{ width: '30%', marginBottom: '0px' }} type="number" onChange={event => setNumInd(event.target.value)} value={numInd} />
+                            <hr style={{ width: '30%' }} />
+                            <input style={{ width: '30%', marginTop: '0px' }} type="number" onChange={event => setDenInd(event.target.value)} value={denInd} />
+                          </div>
+                          <h2 style={{ margin: '-75px' }}>Sin ( </h2>
+                          <div style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column', marginTop: '35px', marginRight: '-75px' }}>
+                            <input style={{ width: '30%', marginBottom: '0px' }} type="number" onChange={event => setNumDep(event.target.value)} value={numDep} />
+                            <hr style={{ width: '30%' }} />
+                            <input style={{ width: '30%', marginTop: '0px' }} type="number" onChange={event => setDenDep(event.target.value)} value={denDep} />
+                          </div>
+                          <h2 >t )</h2>
+                        </div>
+                        <div>
+                          <button onClick={() => inserirSerie()}> Inserir </button>
+                          <button onClick={() => setSerie([])}> Limpar Serie </button>
+                        </div>
+
+                      </div>
+                      : null}
+              </div>
+              {console.log('freqAqui :>> ', freqAqui)}
+              {saidaChart && freqAqui ?
+                <div style={{ width: '80%', marginTop: '25px' }}>
+                  <h3>Sinal de Entrada</h3>
+                  <LineChart chartData={sinalChart} />
+                  <h3>Sinal de Saída</h3>
+                  <LineChart chartData={saidaChart} />
+                  <h3>Espectro de Frequências</h3>
+                  <LineChart chartData={saidaTratadoChart} />
+                </div>
+                : null}
+            </div>
+          }
         </div>
       </div>
     </>

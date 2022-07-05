@@ -18,7 +18,7 @@ button {
   padding: 5px;
 }
 
-input {
+input, select {
   height: 30px;
   margin: 10px;
   border-radius: 5px;
