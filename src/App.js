@@ -10,6 +10,7 @@ function App() {
   const [file, setFile] = useState();
   const [sinalChart, setSinalChart] = useState();
   const [saidaChart, setSaidaChart] = useState();
+  const [faseChart, setFaseChart] = useState();
   const [saidaTratadoChart, setSaidaTratadoChart] = useState();
   const [freqAqui, setFreqAqui] = useState();
   const [tipoFuncao, setTipoFuncao] = useState('0');
@@ -49,14 +50,15 @@ function App() {
 
   function defineSinalChart(sinal) {
     let tamanho = []
-    // if (!botao)
-    for (let i = 0; i < sinal?.length; i++) {
-      tamanho.push((i / freqAqui))
+    if (!botao)
+      for (let i = 0; i < sinal?.length; i++) {
+        tamanho.push((i / freqAqui))
+      }
+    else {
+      for (let i = parseFloat(inicio); i < parseFloat(fim); i = i + 1/freqAqui) {
+        tamanho.push((i))
+      }
     }
-    // else
-    // for (let i = inicio; i < fim; i = i + 1 / nyquist) {
-    //   tamanho.push((i).toFixed(3))
-    // }
     setSinalChart({
       labels: tamanho,
       datasets: [{
@@ -84,10 +86,29 @@ function App() {
     })
   }
 
+  function defineFTTChartFase(saida) {
+    let tamanho = []
+    for (let i = 0; i < saida?.length; i++) {
+      tamanho.push(i)
+    }
+    setFaseChart({
+      labels: tamanho,
+      datasets: [{
+        data: saida,
+        backgroundColor: 'rgba(97,218,251,0.1)',
+        borderColor: "#61dafb",
+        label: "Sinal de Saída"
+      }],
+    })
+  }
+
   function defineFTTTratadoChart(saida) {
     let tamanho = []
     let N = sinal?.length
     let periodo = 1 / freqAqui
+    for (let i = 0.5; i > 0; i = i - 1 / N) {
+      tamanho.push(-(i / periodo))
+    }
     for (let i = 0; i < 0.5; i = i + 1 / N) {
       tamanho.push((i / periodo))
     }
@@ -139,11 +160,13 @@ function App() {
       try {
         let saida = FFT(sinal)
         let saidaReal = []
+        let saidaFase = []
         let saidaTratada = []
         saida.forEach((element) => saidaReal.push(element.re))
+        saida.forEach((element) => saidaFase.push(element.arg()))
         saida.forEach((element) => saidaTratada.push(element.abs() / sinal.length * 2))
         defineFTTChart(saidaReal)
-        saidaTratada = saidaTratada.slice(0, saidaTratada.length / 2)
+        defineFTTChartFase(saidaFase)
         defineFTTTratadoChart(saidaTratada)
       } catch (err) {
         alert(err)
@@ -154,14 +177,13 @@ function App() {
 
   function geraSinal() {
     let sinalCriado = []
-    let nPontos = 1
-    while ((parseFloat(fim) - parseFloat(inicio)) / nPontos > 1 / nyquist) nPontos = nPontos * 2
+    let nPontos = 8
+    while ((parseFloat(fim) - parseFloat(inicio)) / nPontos > 1 / nyquist || (parseFloat(fim) - parseFloat(inicio)) > nPontos) nPontos = nPontos * 2
     let passo = (parseFloat(fim) - parseFloat(inicio)) / nPontos
     for (let i = parseFloat(inicio); i < parseFloat(fim); i = i + passo) {
       sinalCriado.push(respostaSerie(i))
     }
     setFreqAqui(1 / passo)
-    console.log('sinalCriado :>> ', sinalCriado);
     return sinalCriado
   }
 
@@ -201,6 +223,14 @@ function App() {
       }
       if (el.tipo === '3') {
         resp = resp + el.numInd / el.denInd * Math.sin((el.numDep / el.denDep) * t)
+      }
+      if (el.tipo === '4') {
+        resp = resp + el.numInd / el.denInd * Math.exp((el.numDep / el.denDep) * t)
+      }
+      if (el.tipo === '5') {
+        if (t < 0) t = t * -1
+        console.log('t :>> ', t);
+        resp = resp + el.numInd / el.denInd * Math.exp((el.numDep / el.denDep) * t)
       }
     })
     return resp
@@ -269,6 +299,8 @@ function App() {
                   <LineChart chartData={sinalChart} />
                   <h3>Sinal de Saída</h3>
                   <LineChart chartData={saidaChart} />
+                  <h3>Fase em Radianos</h3>
+                  <LineChart chartData={faseChart} />
                   <h3>Espectro de Frequências</h3>
                   <LineChart chartData={saidaTratadoChart} />
                 </div>
@@ -289,7 +321,13 @@ function App() {
                         </> : el.tipo === '3' ?
                           <>
                             {el.numInd / el.denInd} sin({(el.numDep / el.denDep).toFixed(3)} t)
-                          </> : null}
+                          </> : el.tipo === '4' ?
+                            <>
+                              {el.numInd / el.denInd} e^({(el.numDep / el.denDep).toFixed(3)} t)
+                            </> : el.tipo === '5' ?
+                              <>
+                                {el.numInd / el.denInd} e^({(el.numDep / el.denDep).toFixed(3)} |t|)
+                              </> : null}
                     {" + "}
                   </div>
                 )
@@ -300,11 +338,11 @@ function App() {
                   <div style={{ alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ marginTop: '35px', flexDirection: 'column', alignItems: 'center' }}>
                       <label>Início</label>
-                      <input onChange={event => setInicio(event.target.value)} value={inicio} type="number"/>
+                      <input onChange={event => setInicio(event.target.value)} value={inicio} type="number" />
                     </div>
                     <div style={{ marginTop: '35px', flexDirection: 'column', alignItems: 'center' }}>
                       <label>Fim</label>
-                      <input onChange={event => setFim(event.target.value)} value={fim} type="number"/>
+                      <input onChange={event => setFim(event.target.value)} value={fim} type="number" />
                     </div>
                   </div>
                   <button onClick={() => setSinal(geraSinal())}>Calcular</button>
@@ -318,6 +356,8 @@ function App() {
                   <option value='1'>Termo Independente</option>
                   <option value='2'>Cosseno</option>
                   <option value='3'>Seno</option>
+                  <option value='4'>Exponencial</option>
+                  <option value='5'>Exponencial Modular</option>
                 </select>
               </div>
               <div>
@@ -376,15 +416,59 @@ function App() {
                         </div>
 
                       </div>
-                      : null}
+                      : tipoFuncao === '4' ?
+                        <div style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                          <div style={{ justifyContent: 'center', alignContent: 'center', justifyItems: 'center', alignItems: 'center' }}>
+                            <div style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column', marginTop: '35px' }}>
+                              <input style={{ width: '30%', marginBottom: '0px' }} type="number" onChange={event => setNumInd(event.target.value)} value={numInd} />
+                              <hr style={{ width: '30%' }} />
+                              <input style={{ width: '30%', marginTop: '0px' }} type="number" onChange={event => setDenInd(event.target.value)} value={denInd} />
+                            </div>
+                            <h2 style={{ margin: '-75px' }}>e^ ( </h2>
+                            <div style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column', marginTop: '35px', marginRight: '-75px' }}>
+                              <input style={{ width: '30%', marginBottom: '0px' }} type="number" onChange={event => setNumDep(event.target.value)} value={numDep} />
+                              <hr style={{ width: '30%' }} />
+                              <input style={{ width: '30%', marginTop: '0px' }} type="number" onChange={event => setDenDep(event.target.value)} value={denDep} />
+                            </div>
+                            <h2 >t )</h2>
+                          </div>
+                          <div>
+                            <button onClick={() => inserirSerie()}> Inserir </button>
+                            <button onClick={() => setSerie([])}> Limpar Serie </button>
+                          </div>
+
+                        </div>
+                        : tipoFuncao === '5' ?
+                          <div style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column' }}>
+                            <div style={{ justifyContent: 'center', alignContent: 'center', justifyItems: 'center', alignItems: 'center' }}>
+                              <div style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column', marginTop: '35px' }}>
+                                <input style={{ width: '30%', marginBottom: '0px' }} type="number" onChange={event => setNumInd(event.target.value)} value={numInd} />
+                                <hr style={{ width: '30%' }} />
+                                <input style={{ width: '30%', marginTop: '0px' }} type="number" onChange={event => setDenInd(event.target.value)} value={denInd} />
+                              </div>
+                              <h2 style={{ margin: '-75px' }}>e^ ( </h2>
+                              <div style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'column', marginTop: '35px', marginRight: '-75px' }}>
+                                <input style={{ width: '30%', marginBottom: '0px' }} type="number" onChange={event => setNumDep(event.target.value)} value={numDep} />
+                                <hr style={{ width: '30%' }} />
+                                <input style={{ width: '30%', marginTop: '0px' }} type="number" onChange={event => setDenDep(event.target.value)} value={denDep} />
+                              </div>
+                              <h2 >|t| )</h2>
+                            </div>
+                            <div>
+                              <button onClick={() => inserirSerie()}> Inserir </button>
+                              <button onClick={() => setSerie([])}> Limpar Serie </button>
+                            </div>
+
+                          </div> : null}
               </div>
-              {console.log('freqAqui :>> ', freqAqui)}
               {saidaChart && freqAqui ?
                 <div style={{ width: '80%', marginTop: '25px' }}>
                   <h3>Sinal de Entrada</h3>
                   <LineChart chartData={sinalChart} />
                   <h3>Sinal de Saída</h3>
                   <LineChart chartData={saidaChart} />
+                  <h3>Fase em Radianos</h3>
+                  <LineChart chartData={faseChart} />
                   <h3>Espectro de Frequências</h3>
                   <LineChart chartData={saidaTratadoChart} />
                 </div>
