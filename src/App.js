@@ -5,7 +5,7 @@ import LineChart from "./Charts/LineChart";
 import Complex from "complex.js"
 
 function App() {
-  const [botao, setBotao] = useState(true);
+  const [botao, setBotao] = useState(false);
   const [sinal, setSinal] = useState();
   const [file, setFile] = useState();
   const [sinalChart, setSinalChart] = useState();
@@ -13,7 +13,7 @@ function App() {
   const [faseChart, setFaseChart] = useState();
   const [saidaTratadoChart, setSaidaTratadoChart] = useState();
   const [freqAqui, setFreqAqui] = useState();
-  const [tipoFuncao, setTipoFuncao] = useState('0');
+  const [tipoFuncao, setTipoFuncao] = useState('');
   const [inicio, setInicio] = useState();
   const [fim, setFim] = useState();
   const [serie, setSerie] = useState([]);
@@ -55,7 +55,7 @@ function App() {
         tamanho.push((i / freqAqui))
       }
     else {
-      for (let i = parseFloat(inicio); i < parseFloat(fim); i = i + 1/freqAqui) {
+      for (let i = parseFloat(inicio); i < parseFloat(fim); i = i + 1 / freqAqui) {
         tamanho.push((i))
       }
     }
@@ -71,14 +71,16 @@ function App() {
   }
 
   function defineFTTChart(saida) {
+    let saidaReal = []
+    saida.forEach((element) => saidaReal.push(element.re))
     let tamanho = []
-    for (let i = 0; i < saida?.length; i++) {
+    for (let i = 0; i < saidaReal?.length; i++) {
       tamanho.push(i)
     }
     setSaidaChart({
       labels: tamanho,
       datasets: [{
-        data: saida,
+        data: saidaReal,
         backgroundColor: 'rgba(97,218,251,0.1)',
         borderColor: "#61dafb",
         label: "Sinal de Saída"
@@ -87,14 +89,16 @@ function App() {
   }
 
   function defineFTTChartFase(saida) {
+    let saidaFase = []
+    saida.forEach((element) => saidaFase.push(element.arg()))
     let tamanho = []
-    for (let i = 0; i < saida?.length; i++) {
+    for (let i = 0; i < saidaFase?.length; i++) {
       tamanho.push(i)
     }
     setFaseChart({
       labels: tamanho,
       datasets: [{
-        data: saida,
+        data: saidaFase,
         backgroundColor: 'rgba(97,218,251,0.1)',
         borderColor: "#61dafb",
         label: "Sinal de Saída"
@@ -103,19 +107,18 @@ function App() {
   }
 
   function defineFTTTratadoChart(saida) {
+    let saidaTratada = []
+    saida.forEach((element) => saidaTratada.push(element.abs() / sinal.length * 2))
     let tamanho = []
     let N = sinal?.length
     let periodo = 1 / freqAqui
-    for (let i = 0.5; i > 0; i = i - 1 / N) {
-      tamanho.push(-(i / periodo))
-    }
-    for (let i = 0; i < 0.5; i = i + 1 / N) {
+    for (let i = -0.5; i < 0.5; i = i + 1 / N) {
       tamanho.push((i / periodo))
     }
     setSaidaTratadoChart({
       labels: tamanho,
       datasets: [{
-        data: saida,
+        data: saidaTratada,
         backgroundColor: 'rgba(97,218,251,0.1)',
         borderColor: "#61dafb",
         label: "Sinal de Saída Tratado"
@@ -154,25 +157,16 @@ function App() {
   }
 
   useEffect(() => {
-    // if (!botao) {
     defineSinalChart(sinal)
     if (sinal?.length > 0)
       try {
         let saida = FFT(sinal)
-        let saidaReal = []
-        let saidaFase = []
-        let saidaTratada = []
-        saida.forEach((element) => saidaReal.push(element.re))
-        saida.forEach((element) => saidaFase.push(element.arg()))
-        saida.forEach((element) => saidaTratada.push(element.abs() / sinal.length * 2))
-        defineFTTChart(saidaReal)
-        defineFTTChartFase(saidaFase)
-        defineFTTTratadoChart(saidaTratada)
+        defineFTTChart(saida)
+        defineFTTChartFase(saida)
+        defineFTTTratadoChart(saida)
       } catch (err) {
         alert(err)
       }
-    // }
-
   }, [sinal, freqAqui]);
 
   function geraSinal() {
