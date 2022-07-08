@@ -51,7 +51,7 @@ function App() {
   function defineSinalChart(sinal) {
     let tamanho = []
     if (!botao)
-      for (let i = 0; i < sinal?.length; i++) {
+      for (let i = 0 - sinal?.length / 2; i < sinal?.length - sinal?.length / 2; i++) {
         tamanho.push((i / freqAqui))
       }
     else {
@@ -108,7 +108,8 @@ function App() {
 
   function defineFTTTratadoChart(saida) {
     let saidaTratada = []
-    saida.forEach((element) => saidaTratada.push(element.abs() / sinal.length * 2))
+    for (let i = saida.length / 2; i < saida.length; i++) saidaTratada.push(2*saida[i].abs() / sinal.length)
+    for (let i = 0; i < saida.length / 2; i++) saidaTratada.push(2*saida[i].abs() / sinal.length)
     console.log('saidaTratada :>> ', saidaTratada);
     let tamanho = []
     let N = sinal?.length
@@ -173,7 +174,7 @@ function App() {
 
   function geraSinal() {
     let sinalCriado = []
-    let nPontos = 8
+    let nPontos = 1024
     while ((parseFloat(fim) - parseFloat(inicio)) / nPontos > 1 / nyquist || (parseFloat(fim) - parseFloat(inicio)) > nPontos) nPontos = nPontos * 2
     let passo = (parseFloat(fim) - parseFloat(inicio)) / nPontos
     for (let i = parseFloat(inicio); i < parseFloat(fim); i = i + passo) {
